@@ -5,8 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AgriBill - Packet Weight Billing</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style id="dynamicPrintStyle"></style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
@@ -67,6 +69,15 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label for="printFormatSelect">Bill Print &amp; PDF Page Format</label>
+                    <select id="printFormatSelect" class="form-select" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); background-color: #FAFAFA; font-family: var(--font-family); font-size: 0.95rem; outline: none;">
+                        <option value="a4" selected>📄 A4 Standard (Office Laser / Inkjet Printer)</option>
+                        <option value="thermal80">🧾 Thermal 80mm / 3-Inch (Standard POS Receipt Roll)</option>
+                        <option value="thermal58">🧾 Thermal 58mm / 2-Inch (Mini Handheld POS Roll)</option>
+                    </select>
+                </div>
+
                 <div class="divider"></div>
 
                 <div class="packet-entry-section">
@@ -120,7 +131,23 @@
 
         <!-- Bill Display Section -->
         <section class="bill-section">
-            <div class="card bill-card" id="billContainer" style="display: none;">
+            <!-- Format Switcher Toolbar -->
+            <div class="format-toolbar no-print" id="formatToolbar" style="display: none;">
+                <span class="format-toolbar-title">Print Format:</span>
+                <div class="format-btn-group">
+                    <button type="button" class="format-tab-btn active" data-format="a4" id="tabA4">
+                        📄 A4 Standard
+                    </button>
+                    <button type="button" class="format-tab-btn" data-format="thermal80" id="tabThermal80">
+                        🧾 Thermal 80mm (3")
+                    </button>
+                    <button type="button" class="format-tab-btn" data-format="thermal58" id="tabThermal58">
+                        🧾 Thermal 58mm (2")
+                    </button>
+                </div>
+            </div>
+
+            <div class="card bill-card format-a4" id="billContainer" style="display: none;">
                 <div class="bill-header">
                     <div class="bill-logo">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"

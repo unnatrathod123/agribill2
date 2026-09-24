@@ -912,6 +912,286 @@ input:focus {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
     }
+
+    .bill-card.format-thermal80 {
+        width: 74mm !important;
+        max-width: 74mm !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        font-family: 'Consolas', 'Courier New', monospace !important;
+    }
+
+    .bill-card.format-thermal58 {
+        width: 52mm !important;
+        max-width: 52mm !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        font-family: 'Consolas', 'Courier New', monospace !important;
+    }
+}
+
+/* Format Toolbar */
+.format-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--surface);
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.format-toolbar-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+}
+
+.format-btn-group {
+    display: flex;
+    gap: 0.35rem;
+    background-color: #f1f8e9;
+    padding: 0.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.format-tab-btn {
+    border: none;
+    background: transparent;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #558b2f;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: var(--font-family);
+    white-space: nowrap;
+}
+
+.format-tab-btn:hover {
+    background-color: #e8f5e9;
+    color: var(--primary-dark);
+}
+
+.format-tab-btn.active {
+    background-color: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* ========================================================
+   Thermal 80mm (3-Inch) Receipt Mode
+   ======================================================== */
+.bill-card.format-thermal80 {
+    max-width: 380px;
+    margin: 0 auto;
+    padding: 1.25rem 1rem;
+    background: #ffffff;
+    font-family: 'Consolas', 'Courier New', Courier, monospace, sans-serif;
+    color: #111;
+    border: 1px dashed #aaa;
+    border-radius: 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.bill-card.format-thermal80 .bill-header {
+    border-bottom: 1px dashed #444;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.bill-card.format-thermal80 .bill-header h2 {
+    font-size: 1.15rem;
+    letter-spacing: 0.04em;
+}
+
+.bill-card.format-thermal80 .bill-parties {
+    flex-direction: column;
+    gap: 0.3rem;
+    border-bottom: 1px dashed #444;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.bill-card.format-thermal80 .bill-parties .party {
+    background: transparent;
+    border: none;
+    padding: 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+.bill-card.format-thermal80 .bill-parties .party p {
+    font-size: 0.95rem;
+}
+
+.bill-card.format-thermal80 .bill-table {
+    border-bottom: 1px dashed #444;
+    margin-bottom: 0.75rem;
+}
+
+.bill-card.format-thermal80 .bill-table th,
+.bill-card.format-thermal80 .bill-table td {
+    padding: 0.25rem 0.2rem;
+    font-size: 0.8rem;
+    border-bottom: 1px dotted #ccc;
+}
+
+.bill-card.format-thermal80 .breakdown-table th,
+.bill-card.format-thermal80 .breakdown-table td {
+    padding: 0.2rem 0.15rem;
+    font-size: 0.75rem;
+    border: 1px solid #ddd;
+}
+
+.bill-card.format-thermal80 .grand-summary-bar {
+    border: 1px dashed #444;
+    background: #fafafa;
+    padding: 0.4rem;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+}
+
+.bill-card.format-thermal80 .bill-signatures {
+    border-top: 1px dashed #444;
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+}
+
+.bill-card.format-thermal80 .sig-block {
+    width: 30%;
+}
+
+.bill-card.format-thermal80 .sig-line {
+    border-bottom: 1px dashed #666;
+    height: 25px;
+}
+
+/* ========================================================
+   Thermal 58mm (2-Inch) Receipt Mode
+   ======================================================== */
+.bill-card.format-thermal58 {
+    max-width: 280px;
+    margin: 0 auto;
+    padding: 1rem 0.6rem;
+    background: #ffffff;
+    font-family: 'Consolas', 'Courier New', Courier, monospace;
+    font-size: 11px;
+    color: #111;
+    border: 1px dashed #aaa;
+    border-radius: 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.bill-card.format-thermal58 .bill-header {
+    border-bottom: 1px dashed #444;
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.5rem;
+}
+
+.bill-card.format-thermal58 .bill-header h2 {
+    font-size: 0.95rem;
+}
+
+.bill-card.format-thermal58 .bill-logo {
+    font-size: 1rem;
+}
+
+.bill-card.format-thermal58 .bill-meta-info {
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.bill-card.format-thermal58 .bill-parties {
+    flex-direction: column;
+    gap: 0.15rem;
+    border-bottom: 1px dashed #444;
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.5rem;
+}
+
+.bill-card.format-thermal58 .bill-parties .party {
+    background: transparent;
+    border: none;
+    padding: 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+.bill-card.format-thermal58 .bill-parties .party p {
+    font-size: 0.85rem;
+}
+
+.bill-card.format-thermal58 .bill-table {
+    border-bottom: 1px dashed #444;
+    margin-bottom: 0.5rem;
+}
+
+.bill-card.format-thermal58 .bill-table th,
+.bill-card.format-thermal58 .bill-table td {
+    padding: 0.15rem 0.1rem;
+    font-size: 0.72rem;
+    border-bottom: 1px dotted #ccc;
+}
+
+.bill-card.format-thermal58 .breakdown-table th,
+.bill-card.format-thermal58 .breakdown-table td {
+    padding: 0.15rem 0.1rem;
+    font-size: 0.68rem;
+    border: 1px solid #ddd;
+}
+
+.bill-card.format-thermal58 .grand-summary-bar {
+    border: 1px dashed #444;
+    background: #fafafa;
+    padding: 0.3rem;
+    margin-top: 0.5rem;
+    font-size: 0.68rem;
+}
+
+.bill-card.format-thermal58 .bill-signatures {
+    border-top: 1px dashed #444;
+    margin-top: 0.75rem;
+    padding-top: 0.35rem;
+}
+
+.bill-card.format-thermal58 .sig-block {
+    width: 32%;
+}
+
+.bill-card.format-thermal58 .sig-line {
+    border-bottom: 1px dashed #666;
+    height: 18px;
+}
+
+.bill-card.format-thermal58 .sig-block p {
+    font-size: 0.55rem;
+}
+
+/* Dedicated PDF Mode for Thermal 80mm */
+.bill-card.format-thermal80.pdf-mode {
+    width: 300px !important;
+    max-width: 300px !important;
+    min-width: 300px !important;
+    padding: 6px 8px !important;
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Dedicated PDF Mode for Thermal 58mm */
+.bill-card.format-thermal58.pdf-mode {
+    width: 215px !important;
+    max-width: 215px !important;
+    min-width: 215px !important;
+    padding: 4px 6px !important;
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    box-shadow: none !important;
+    border: none !important;
 }
 
 @media screen {

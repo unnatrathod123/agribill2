@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements - Bill Section
     const billContainer = document.getElementById('billContainer');
     const emptyState = document.getElementById('emptyState');
+    const formatToolbar = document.getElementById('formatToolbar');
+    const printFormatSelect = document.getElementById('printFormatSelect');
+    const dynamicPrintStyle = document.getElementById('dynamicPrintStyle');
 
     // DOM Elements - Bill Output
     const billDate = document.getElementById('billDate');
@@ -45,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const billGrandSummary = document.getElementById('billGrandSummary');
 
     let currentInvoiceNo = '';
+    let currentFormat = 'a4';
 
     // Utility: Format Currency
     const formatCurrency = (amount) => {
@@ -261,20 +265,250 @@ document.addEventListener('DOMContentLoaded', () => {
             billAmountInWords.textContent = numberToWordsINR(totalAmount);
         }
 
-        // Populate Breakdown
+        // Set Print Format & Layout
+        const formatToApply = printFormatSelect ? printFormatSelect.value : currentFormat;
+        setPrintFormat(formatToApply);
+
+        if (formatToolbar) {
+            formatToolbar.style.display = 'flex';
+        }
+
+        renderBreakdownTables();
+
+        // Toggle UI
+        emptyState.style.display = 'none';
+        billContainer.style.display = 'block';
+
+        // Scroll to bill on mobile
+        if (window.innerWidth <= 768) {
+            billContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
+    // Set Print Format & Switch Layout
+    const setPrintFormat = (format) => {
+        currentFormat = format;
+        if (printFormatSelect) {
+            printFormatSelect.value = format;
+        }
+
+        const formatBtns = document.querySelectorAll('.format-tab-btn');
+        formatBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.format === format);
+        });
+
+        if (billContainer) {
+            billContainer.classList.remove('format-a4', 'format-thermal80', 'format-thermal58');
+            billContainer.classList.add(`format-${format}`);
+        }
+
+        if (dynamicPrintStyle) {
+            if (format === 'thermal80') {
+                dynamicPrintStyle.textContent = '@page { size: 80mm auto; margin: 2mm; }';
+            } else if (format === 'thermal58') {
+                dynamicPrintStyle.textContent = '@page { size: 58mm auto; margin: 1.5mm; }';
+            } else {
+                dynamicPrintStyle.textContent = '@page { size: A4 portrait; margin: 6mm; }';
+            }
+        }
+
+        if (packets.length > 0 && billContainer && billContainer.style.display !== 'none') {
+            renderBreakdownTables();
+        }
+    };
+
+    // Render Breakdown Tables based on selected format
+    const renderBreakdownTables = () => {
         const tablesContainer = document.getElementById('tablesContainer');
+        if (!tablesContainer) return;
         tablesContainer.innerHTML = '';
         if (billGrandSummary) {
             billGrandSummary.innerHTML = '';
         }
 
-        if (packets.length > 0) {
-            // Adaptive ultra-compact layout:
-            // For <= 40 packets: 4 columns x 10 rows (up to 40 per table)
-            // For > 40 packets: 5 columns x up to 20 rows (up to 100 per table on 1 page!)
+        if (packets.length === 0) return;
+
+        const count = packets.length;
+        const grossWeight = packets.reduce((sum, w) => sum + w, 0);
+        const deduction = parseFloat(deductionPerPacketInput.value) || 0;
+        const totalDeduction = count * deduction;
+        const netWeight = grossWeight - totalDeduction;
+        const rate = parseFloat(pricePerKgInput.value) || 0;
+        const priceUnitVal = parseFloat(priceUnitInput.value) || 1;
+        const totalAmount = netWeight * (rate / priceUnitVal);
+        const seller = sellerNameInput.value.trim() || 'Cash';
+        const buyer = buyerNameInput.value.trim() || 'Cash';
+        const dateStr = billDate.textContent;
+
+        if (currentFormat === 'thermal80') {
+            // Thermal 80mm (3-Inch): Continuous receipt with 3 column pairs
+            const maxCols = 3;
+            const actualRows = Math.ceil(packets.length / maxCols);
+            const cols = Math.min(maxCols, Math.ceil(packets.length / actualRows));
+
+            const tableWrapper = document.createElement('div');
+            tableWrapper.className = 'packet-table-wrapper';
+
+            const headerBar = document.createElement('div');
+            headerBar.className = 'table-header-bar';
+            headerBar.innerHTML = `
+                <span>Packet Breakdown (${packets.length} pkts)</span>
+                <span class="table-subtotal-tag">${grossWeight.toFixed(2)} Kg</span>
+            `;
+            tableWrapper.appendChild(headerBar);
+
+            const table = document.createElement('table');
+            table.className = 'breakdown-table';
+            table.style.width = '100%';
+
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            for (let c = 0; c < cols; c++) {
+                const th1 = document.createElement('th');
+                th1.textContent = 'Sr';
+                th1.style.width = '35%';
+                const th2 = document.createElement('th');
+                th2.textContent = 'Kg';
+                th2.style.width = '65%';
+                headerRow.appendChild(th1);
+                headerRow.appendChild(th2);
+            }
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            for (let r = 0; r < actualRows; r++) {
+                const tr = document.createElement('tr');
+                for (let c = 0; c < cols; c++) {
+                    const localIdx = c * actualRows + r;
+                    const tdSr = document.createElement('td');
+                    const tdWt = document.createElement('td');
+
+                    if (localIdx < packets.length) {
+                        tdSr.textContent = localIdx + 1;
+                        tdWt.textContent = packets[localIdx].toFixed(2);
+                    } else {
+                        tdSr.textContent = '-';
+                        tdWt.textContent = '-';
+                    }
+                    tr.appendChild(tdSr);
+                    tr.appendChild(tdWt);
+                }
+                tbody.appendChild(tr);
+            }
+            table.appendChild(tbody);
+
+            // Subtotals per column
+            const tfoot = document.createElement('tfoot');
+            const footerRow = document.createElement('tr');
+            for (let c = 0; c < cols; c++) {
+                let colSum = 0;
+                for (let r = 0; r < actualRows; r++) {
+                    const localIdx = c * actualRows + r;
+                    if (localIdx < packets.length) {
+                        colSum += packets[localIdx];
+                    }
+                }
+                const tdLabel = document.createElement('td');
+                tdLabel.innerHTML = '<strong>Tot</strong>';
+                const tdSum = document.createElement('td');
+                tdSum.innerHTML = colSum > 0 ? `<strong>${colSum.toFixed(2)}</strong>` : '-';
+                footerRow.appendChild(tdLabel);
+                footerRow.appendChild(tdSum);
+            }
+            tfoot.appendChild(footerRow);
+            table.appendChild(tfoot);
+
+            tableWrapper.appendChild(table);
+            tablesContainer.appendChild(tableWrapper);
+
+        } else if (currentFormat === 'thermal58') {
+            // Thermal 58mm (2-Inch): Continuous mini receipt with 2 column pairs
+            const maxCols = 2;
+            const actualRows = Math.ceil(packets.length / maxCols);
+            const cols = Math.min(maxCols, Math.ceil(packets.length / actualRows));
+
+            const tableWrapper = document.createElement('div');
+            tableWrapper.className = 'packet-table-wrapper';
+
+            const headerBar = document.createElement('div');
+            headerBar.className = 'table-header-bar';
+            headerBar.innerHTML = `
+                <span>Packets (${packets.length} pkts)</span>
+                <span class="table-subtotal-tag">${grossWeight.toFixed(2)} Kg</span>
+            `;
+            tableWrapper.appendChild(headerBar);
+
+            const table = document.createElement('table');
+            table.className = 'breakdown-table';
+            table.style.width = '100%';
+
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            for (let c = 0; c < cols; c++) {
+                const th1 = document.createElement('th');
+                th1.textContent = '#';
+                th1.style.width = '35%';
+                const th2 = document.createElement('th');
+                th2.textContent = 'Kg';
+                th2.style.width = '65%';
+                headerRow.appendChild(th1);
+                headerRow.appendChild(th2);
+            }
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            for (let r = 0; r < actualRows; r++) {
+                const tr = document.createElement('tr');
+                for (let c = 0; c < cols; c++) {
+                    const localIdx = c * actualRows + r;
+                    const tdSr = document.createElement('td');
+                    const tdWt = document.createElement('td');
+
+                    if (localIdx < packets.length) {
+                        tdSr.textContent = localIdx + 1;
+                        tdWt.textContent = packets[localIdx].toFixed(2);
+                    } else {
+                        tdSr.textContent = '-';
+                        tdWt.textContent = '-';
+                    }
+                    tr.appendChild(tdSr);
+                    tr.appendChild(tdWt);
+                }
+                tbody.appendChild(tr);
+            }
+            table.appendChild(tbody);
+
+            // Subtotals per column
+            const tfoot = document.createElement('tfoot');
+            const footerRow = document.createElement('tr');
+            for (let c = 0; c < cols; c++) {
+                let colSum = 0;
+                for (let r = 0; r < actualRows; r++) {
+                    const localIdx = c * actualRows + r;
+                    if (localIdx < packets.length) {
+                        colSum += packets[localIdx];
+                    }
+                }
+                const tdLabel = document.createElement('td');
+                tdLabel.innerHTML = '<strong>T</strong>';
+                const tdSum = document.createElement('td');
+                tdSum.innerHTML = colSum > 0 ? `<strong>${colSum.toFixed(2)}</strong>` : '-';
+                footerRow.appendChild(tdLabel);
+                footerRow.appendChild(tdSum);
+            }
+            tfoot.appendChild(footerRow);
+            table.appendChild(tfoot);
+
+            tableWrapper.appendChild(table);
+            tablesContainer.appendChild(tableWrapper);
+
+        } else {
+            // A4 Standard: Ultra-compact adaptive 4/5 column grid
             const maxCols = packets.length <= 40 ? 4 : 5;
             const rows = packets.length <= 40 ? 10 : 20;
-            const packetsPerTable = rows * maxCols; // 40 or 100
+            const packetsPerTable = rows * maxCols;
             const numTables = Math.ceil(packets.length / packetsPerTable);
 
             for (let t = 0; t < numTables; t++) {
@@ -286,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const actualRows = Math.min(rows, Math.ceil(tablePackets.length / maxCols));
                 const cols = Math.min(maxCols, Math.ceil(tablePackets.length / actualRows));
 
-                // Page break before continuation pages (only if > 1 table and t > 0)
+                // Page break before continuation pages
                 if (numTables > 1 && t > 0) {
                     const pageBreakDiv = document.createElement('div');
                     pageBreakDiv.className = 'html2pdf__page-break pdf-page-break';
@@ -301,11 +535,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     tablesContainer.appendChild(contHeader);
                 }
 
-                // Table Container Wrapper
                 const tableWrapper = document.createElement('div');
                 tableWrapper.className = 'packet-table-wrapper pdf-avoid-break';
 
-                // Table Header Bar with subtotal
                 const headerBar = document.createElement('div');
                 headerBar.className = 'table-header-bar';
                 headerBar.innerHTML = `
@@ -325,7 +557,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     table.style.width = '100%';
                 }
 
-                // Create Header
                 const thead = document.createElement('thead');
                 const headerRow = document.createElement('tr');
                 for (let c = 0; c < cols; c++) {
@@ -341,14 +572,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 thead.appendChild(headerRow);
                 table.appendChild(thead);
 
-                // Create Body
                 const tbody = document.createElement('tbody');
                 for (let r = 0; r < actualRows; r++) {
                     const tr = document.createElement('tr');
                     for (let c = 0; c < cols; c++) {
                         const localIdx = c * actualRows + r;
                         const globalIdx = tableStartIndex + localIdx;
-
                         const tdSr = document.createElement('td');
                         const tdWt = document.createElement('td');
 
@@ -366,10 +595,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 table.appendChild(tbody);
 
-                // Create Footer (Subtotal of packets per column)
                 const tfoot = document.createElement('tfoot');
                 const footerRow = document.createElement('tr');
-
                 for (let c = 0; c < cols; c++) {
                     let colSum = 0;
                     for (let r = 0; r < actualRows; r++) {
@@ -379,17 +606,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             colSum += packets[globalIdx];
                         }
                     }
-
                     const tdLabel = document.createElement('td');
                     tdLabel.innerHTML = '<strong>Total</strong>';
-
                     const tdSum = document.createElement('td');
-                    if (colSum > 0) {
-                        tdSum.innerHTML = `<strong>${colSum.toFixed(2)}</strong>`;
-                    } else {
-                        tdSum.innerHTML = '-';
-                    }
-
+                    tdSum.innerHTML = colSum > 0 ? `<strong>${colSum.toFixed(2)}</strong>` : '-';
                     footerRow.appendChild(tdLabel);
                     footerRow.appendChild(tdSum);
                 }
@@ -400,55 +620,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 tableWrapper.appendChild(tableDiv);
                 tablesContainer.appendChild(tableWrapper);
             }
-
-            // Populate Grand Summary Bar
-            if (billGrandSummary) {
-                billGrandSummary.innerHTML = `
-                    <div class="grand-summary-bar pdf-avoid-break">
-                        <div class="gs-item">
-                            <span class="gs-lbl">Total Packets</span>
-                            <span class="gs-val">${count}</span>
-                        </div>
-                        <div class="gs-item">
-                            <span class="gs-lbl">Gross Weight</span>
-                            <span class="gs-val">${grossWeight.toFixed(2)} Kg</span>
-                        </div>
-                        <div class="gs-item">
-                            <span class="gs-lbl">Total Deductions</span>
-                            <span class="gs-val text-danger">-${totalDeduction.toFixed(2)} Kg</span>
-                        </div>
-                        <div class="gs-item">
-                            <span class="gs-lbl">Net Weight</span>
-                            <span class="gs-val">${netWeight.toFixed(2)} Kg</span>
-                        </div>
-                        <div class="gs-item highlight">
-                            <span class="gs-lbl">Total Amount</span>
-                            <span class="gs-val">${formatCurrency(totalAmount)}</span>
-                        </div>
-                    </div>
-                `;
-
-                // Add page note for print/PDF
-                const finalNote = document.createElement('div');
-                finalNote.className = 'page-footer-note no-screen';
-                if (numTables > 1) {
-                    finalNote.textContent = `Page ${numTables} of ${numTables} • AgriBill`;
-                } else {
-                    finalNote.textContent = 'Page 1 of 1 • AgriBill Smart Billing System';
-                }
-                billGrandSummary.appendChild(finalNote);
-            }
         }
 
-        // Toggle UI
-        emptyState.style.display = 'none';
-        billContainer.style.display = 'block';
+        // Populate Grand Summary Bar
+        if (billGrandSummary) {
+            billGrandSummary.innerHTML = `
+                <div class="grand-summary-bar pdf-avoid-break">
+                    <div class="gs-item">
+                        <span class="gs-lbl">Total Packets</span>
+                        <span class="gs-val">${count}</span>
+                    </div>
+                    <div class="gs-item">
+                        <span class="gs-lbl">Gross Weight</span>
+                        <span class="gs-val">${grossWeight.toFixed(2)} Kg</span>
+                    </div>
+                    <div class="gs-item">
+                        <span class="gs-lbl">Total Deductions</span>
+                        <span class="gs-val text-danger">-${totalDeduction.toFixed(2)} Kg</span>
+                    </div>
+                    <div class="gs-item">
+                        <span class="gs-lbl">Net Weight</span>
+                        <span class="gs-val">${netWeight.toFixed(2)} Kg</span>
+                    </div>
+                    <div class="gs-item highlight">
+                        <span class="gs-lbl">Total Amount</span>
+                        <span class="gs-val">${formatCurrency(totalAmount)}</span>
+                    </div>
+                </div>
+            `;
 
-        // Scroll to bill on mobile
-        if (window.innerWidth <= 768) {
-            billContainer.scrollIntoView({ behavior: 'smooth' });
+            const finalNote = document.createElement('div');
+            finalNote.className = 'page-footer-note no-screen';
+            if (currentFormat === 'thermal80') {
+                finalNote.textContent = '*** Thank You • AgriBill Thermal 80mm ***';
+            } else if (currentFormat === 'thermal58') {
+                finalNote.textContent = '*** Thank You • AgriBill 58mm ***';
+            } else {
+                finalNote.textContent = 'Page 1 of 1 • AgriBill Smart Billing System';
+            }
+            billGrandSummary.appendChild(finalNote);
         }
     };
+
+    // Format Toolbar Switcher Listeners
+    const formatBtns = document.querySelectorAll('.format-tab-btn');
+    formatBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            setPrintFormat(btn.dataset.format);
+        });
+    });
+
+    if (printFormatSelect) {
+        printFormatSelect.addEventListener('change', (e) => {
+            setPrintFormat(e.target.value);
+        });
+    }
 
     // Event Listeners
     addPacketBtn.addEventListener('click', addPacket);
@@ -494,6 +720,15 @@ document.addEventListener('DOMContentLoaded', () => {
     generateBillBtn.addEventListener('click', generateBill);
 
     printBillBtn.addEventListener('click', () => {
+        if (dynamicPrintStyle) {
+            if (currentFormat === 'thermal80') {
+                dynamicPrintStyle.textContent = '@page { size: 80mm auto; margin: 2mm; }';
+            } else if (currentFormat === 'thermal58') {
+                dynamicPrintStyle.textContent = '@page { size: 58mm auto; margin: 1.5mm; }';
+            } else {
+                dynamicPrintStyle.textContent = '@page { size: A4 portrait; margin: 6mm; }';
+            }
+        }
         window.print();
     });
 
@@ -518,14 +753,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const prevScrollY = window.scrollY;
 
         try {
-            // CRITICAL FIX 1: Scroll to (0,0) before capturing to prevent blank first page
+            // Scroll to (0,0) before capturing to prevent blank first page
             window.scrollTo(0, 0);
 
             // Hide action buttons during PDF render
             const actions = billElement.querySelector('.bill-actions');
             if (actions) actions.style.display = 'none';
 
-            // CRITICAL FIX 2: Apply pdf-mode for fixed 750px A4 printable width and zero shadows
+            // Apply pdf-mode for clean capture
             billElement.classList.add('pdf-mode');
 
             // Wait 150ms for layout reflow
@@ -535,27 +770,70 @@ document.addEventListener('DOMContentLoaded', () => {
             const safeSeller = seller.replace(/[^a-zA-Z0-9_-]/g, '_');
             const now = new Date();
             const dateStr = now.toISOString().slice(0, 10);
-            const filename = `AgriBill_${safeSeller}_${dateStr}.pdf`;
+            const filename = `AgriBill_${currentFormat}_${safeSeller}_${dateStr}.pdf`;
 
-            const opt = {
-                margin: [5, 5, 5, 5], // 5mm compact margins
-                filename: filename,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    scrollX: 0,
-                    scrollY: 0,
-                    logging: false,
-                    backgroundColor: '#ffffff'
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { 
-                    mode: ['css', 'legacy'],
-                    before: '.html2pdf__page-break',
-                    avoid: ['tr', '.pdf-avoid-break', '.breakdown-table', '.packet-table-wrapper', '.grand-summary-bar', '.bill-signatures']
-                }
-            };
+            let opt;
+            if (currentFormat === 'thermal80') {
+                const elWidth = billElement.offsetWidth || 300;
+                const elHeight = billElement.offsetHeight || 600;
+                const heightMm = Math.max(90, Math.ceil((elHeight * 76) / elWidth) + 8);
+
+                opt = {
+                    margin: [2, 2, 2, 2],
+                    filename: filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        scrollX: 0,
+                        scrollY: 0,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    },
+                    jsPDF: { unit: 'mm', format: [80, heightMm], orientation: 'portrait' },
+                    pagebreak: { mode: 'avoid-all' }
+                };
+            } else if (currentFormat === 'thermal58') {
+                const elWidth = billElement.offsetWidth || 215;
+                const elHeight = billElement.offsetHeight || 600;
+                const heightMm = Math.max(80, Math.ceil((elHeight * 54) / elWidth) + 6);
+
+                opt = {
+                    margin: [1.5, 1.5, 1.5, 1.5],
+                    filename: filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        scrollX: 0,
+                        scrollY: 0,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    },
+                    jsPDF: { unit: 'mm', format: [58, heightMm], orientation: 'portrait' },
+                    pagebreak: { mode: 'avoid-all' }
+                };
+            } else {
+                opt = {
+                    margin: [5, 5, 5, 5], // 5mm compact margins
+                    filename: filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        scrollX: 0,
+                        scrollY: 0,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak: { 
+                        mode: ['css', 'legacy'],
+                        before: '.html2pdf__page-break',
+                        avoid: ['tr', '.pdf-avoid-break', '.breakdown-table', '.packet-table-wrapper', '.grand-summary-bar', '.bill-signatures']
+                    }
+                };
+            }
 
             await html2pdf().set(opt).from(billElement).save();
 
