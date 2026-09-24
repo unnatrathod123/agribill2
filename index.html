@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriBill - Packet Weight Billing</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+
+<body>
+    <header class="app-header no-print">
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-leaf">
+                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+                <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+            </svg>
+            AgriBill
+        </div>
+        <p>Smart Billing for Agricultural Commodities</p>
+    </header>
+
+    <main class="container">
+        <!-- Input Section -->
+        <section class="input-section no-print">
+            <div class="card">
+                <h2>Transaction Details</h2>
+
+                <div class="form-group-row">
+                    <div class="form-group">
+                        <label for="sellerName">Seller Name</label>
+                        <input type="text" id="sellerName" placeholder="Enter seller's name">
+                    </div>
+                    <div class="form-group">
+                        <label for="buyerName">Buyer Name</label>
+                        <input type="text" id="buyerName" placeholder="Enter buyer's name">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="commodityName">Commodity Name</label>
+                    <input type="text" id="commodityName" placeholder="e.g., Wheat, Rice, Cotton">
+                </div>
+
+                <div class="form-group-row">
+                    <div class="form-group">
+                        <label for="pricePerKg">Price (₹)</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="number" id="pricePerKg" placeholder="Rate" min="0" step="0.01"
+                                style="flex: 2;">
+                            <select id="priceUnit"
+                                style="flex: 1; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background-color: #FAFAFA; font-family: var(--font-family); outline: none;">
+                                <option value="1">per Kg</option>
+                                <option value="20">per 20 Kg</option>
+                                <option value="100">per Quintal</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="deductionPerPacket">Deduction per Packet (Kg)</label>
+                        <input type="number" id="deductionPerPacket" placeholder="e.g., 0.5 (sack weight)" min="0"
+                            step="0.01">
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="packet-entry-section">
+                    <h3>Packet Weights</h3>
+                    <p class="subtitle">Enter the weight of each packet.</p>
+
+                    <div class="weight-input-container">
+                        <div class="form-group">
+                            <label for="packetWeightInput">New Packet Weight (Kg)</label>
+                            <div class="weight-input-row">
+                                <input type="number" id="packetWeightInput" placeholder="Enter weight" min="0"
+                                    step="0.01">
+                                <button id="addPacketBtn" class="btn btn-secondary">Add</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group"
+                            style="margin-top: 1rem; border-top: 1px dashed var(--border); padding-top: 1rem;">
+                            <label for="importPacketsInput">Import Packets (CSV/TXT)</label>
+                            <input type="file" id="importPacketsInput" accept=".csv,.txt" style="display: none;">
+                            <button class="btn btn-secondary full-width"
+                                onclick="document.getElementById('importPacketsInput').click()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="lucide lucide-upload" style="margin-right: 0.5rem;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="17 8 12 3 7 8" />
+                                    <line x1="12" x2="12" y1="3" y2="15" />
+                                </svg>
+                                Upload File
+                            </button>
+                            <p class="small-text" style="text-align: center; margin-top: 0.5rem; margin-bottom: 0;">Each
+                                line or comma separates weights.</p>
+                        </div>
+                    </div>
+
+                    <div class="packet-list-container">
+                        <div class="packet-summary">
+                            <span>Total Packets: <strong id="packetCount">0</strong></span>
+                            <span>Total Weight: <strong id="totalWeightStr">0.00</strong> Kg</span>
+                        </div>
+                        <ul id="packetList" class="packet-list">
+                            <!-- Packets will be added here dynamically -->
+                        </ul>
+                    </div>
+                </div>
+
+                <button id="generateBillBtn" class="btn btn-primary full-width">Generate Bill</button>
+            </div>
+        </section>
+
+        <!-- Bill Display Section -->
+        <section class="bill-section">
+            <div class="card bill-card" id="billContainer" style="display: none;">
+                <div class="bill-header">
+                    <div class="bill-logo">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-leaf">
+                            <path
+                                d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+                            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+                        </svg>
+                        AgriBill
+                    </div>
+                    <h2>Invoice / Weighing Memo</h2>
+                    <div class="bill-meta-info">
+                        <span>Date: <strong id="billDate"></strong></span>
+                        <span class="invoice-num-tag">Invoice No: <strong id="billInvoiceNo"></strong></span>
+                    </div>
+                </div>
+
+                <div class="bill-parties">
+                    <div class="party">
+                        <strong>Seller:</strong>
+                        <p id="billSeller"></p>
+                    </div>
+                    <div class="party">
+                        <strong>Buyer:</strong>
+                        <p id="billBuyer"></p>
+                    </div>
+                </div>
+
+                <table class="bill-table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th align="center">Details</th>
+                            <th class="text-right">Amount (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Commodity</strong></td>
+                            <td id="billCommodity"></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Rate</td>
+                            <td id="billRate"></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Total Packets</td>
+                            <td id="billPackets"></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Gross Weight</td>
+                            <td id="billGrossWeight"></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Deductions (<span id="billDeductionRate"></span>/pkt)</td>
+                            <td id="billTotalDeduction" class="text-danger"></td>
+                            <td></td>
+                        </tr>
+                        <tr class="table-highlight">
+                            <td><strong>Net Weight</strong></td>
+                            <td id="billNetWeight"><strong></strong></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2" class="text-right"><strong>Total Amount</strong></td>
+                            <td class="text-right"><strong id="billTotalAmount" class="total-amount"></strong></td>
+                        </tr>
+                        <tr class="amount-words-row">
+                            <td colspan="3">
+                                <div class="amount-in-words-wrapper">
+                                    <span class="words-label">Amount in Words:</span>
+                                    <span id="billAmountInWords" class="words-val"></span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <div class="packet-breakdown" id="packetBreakdown">
+                    <h4>Packet Breakdown</h4>
+                    <div id="tablesContainer"></div>
+                </div>
+
+                <div id="billGrandSummary"></div>
+
+                <div id="billSignatures" class="bill-signatures pdf-avoid-break">
+                    <div class="sig-block">
+                        <div class="sig-line"></div>
+                        <p>Seller Signature / Thumb</p>
+                    </div>
+                    <div class="sig-block">
+                        <div class="sig-line"></div>
+                        <p>Weigher / Operator</p>
+                    </div>
+                    <div class="sig-block">
+                        <div class="sig-line"></div>
+                        <p>Buyer Signature</p>
+                    </div>
+                </div>
+
+                <div class="bill-actions no-print">
+                    <button id="downloadBillBtn" class="btn btn-primary"
+                        style="background-color: var(--secondary); color: var(--text-main);">Download PDF</button>
+                    <button id="printBillBtn" class="btn btn-primary">Print Bill</button>
+                    <button id="editBillBtn" class="btn btn-secondary">Edit Details</button>
+                </div>
+            </div>
+
+            <div id="emptyState" class="empty-state no-print">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-receipt">
+                    <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+                    <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+                    <path d="M12 17.5v-11" />
+                </svg>
+                <h3>No Bill Generated</h3>
+                <p>Fill in the details on the left and generate a bill to see it here.</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
