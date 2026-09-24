@@ -71,7 +71,8 @@
 
                 <div class="form-group">
                     <label for="printFormatSelect">Bill Print &amp; PDF Page Format</label>
-                    <select id="printFormatSelect" class="form-select" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); background-color: #FAFAFA; font-family: var(--font-family); font-size: 0.95rem; outline: none;">
+                    <select id="printFormatSelect" class="form-select"
+                        style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); background-color: #FAFAFA; font-family: var(--font-family); font-size: 0.95rem; outline: none;">
                         <option value="a4" selected>📄 A4 Standard (Office Laser / Inkjet Printer)</option>
                         <option value="thermal80">🧾 Thermal 80mm / 3-Inch (Standard POS Receipt Roll)</option>
                         <option value="thermal58">🧾 Thermal 58mm / 2-Inch (Mini Handheld POS Roll)</option>
@@ -188,33 +189,31 @@
                     <tbody>
                         <tr>
                             <td><strong>Commodity</strong></td>
-                            <td id="billCommodity"></td>
-                            <td></td>
+                            <td colspan="2" id="billCommodity"></td>
                         </tr>
                         <tr>
                             <td>Rate</td>
-                            <td id="billRate"></td>
-                            <td></td>
+                            <td colspan="2" id="billRate"></td>
                         </tr>
                         <tr>
                             <td>Total Packets</td>
-                            <td id="billPackets"></td>
+                            <td colspan="2" id="billPackets"></td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>Gross Weight</td>
-                            <td id="billGrossWeight"></td>
+                            <td colspan="2" id="billGrossWeight"></td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>Deductions (<span id="billDeductionRate"></span>/pkt)</td>
-                            <td id="billTotalDeduction" class="text-danger"></td>
+                            <td colspan="2" id="billTotalDeduction" class="text-danger"></td>
                             <td></td>
                         </tr>
                         <tr class="table-highlight">
                             <td><strong>Net Weight</strong></td>
-                            <td id="billNetWeight"><strong></strong></td>
-                            <td></td>
+                            <td colspan="2" id="billNetWeight"><strong></strong></td>
+
                         </tr>
                     </tbody>
                     <tfoot>
