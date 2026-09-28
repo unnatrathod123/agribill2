@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style id="dynamicPrintStyle"></style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
@@ -198,22 +200,18 @@
                         <tr>
                             <td>Total Packets</td>
                             <td colspan="2" id="billPackets"></td>
-                            <td></td>
                         </tr>
                         <tr>
                             <td>Gross Weight</td>
                             <td colspan="2" id="billGrossWeight"></td>
-                            <td></td>
                         </tr>
                         <tr>
                             <td>Deductions (<span id="billDeductionRate"></span>/pkt)</td>
                             <td colspan="2" id="billTotalDeduction" class="text-danger"></td>
-                            <td></td>
                         </tr>
                         <tr class="table-highlight">
                             <td><strong>Net Weight</strong></td>
                             <td colspan="2" id="billNetWeight"><strong></strong></td>
-
                         </tr>
                     </tbody>
                     <tfoot>
@@ -253,6 +251,8 @@
                         <p>Buyer Signature</p>
                     </div>
                 </div>
+
+                <div id="billFooterNote" class="page-footer-note"></div>
 
                 <div class="bill-actions no-print">
                     <button id="downloadBillBtn" class="btn btn-primary"

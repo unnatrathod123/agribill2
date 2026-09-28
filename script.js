@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const billTotalAmount = document.getElementById('billTotalAmount');
     const billAmountInWords = document.getElementById('billAmountInWords');
     const billGrandSummary = document.getElementById('billGrandSummary');
+    const billFooterNote = document.getElementById('billFooterNote');
 
     let currentInvoiceNo = '';
     let currentFormat = 'a4';
@@ -341,8 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const dateStr = billDate.textContent;
 
         if (currentFormat === 'thermal80') {
-            // Thermal 80mm (3-Inch): Continuous receipt with 3 column pairs
-            const maxCols = 3;
+            // Thermal 80mm (3-Inch): Continuous receipt with up to 3 column pairs
+            const maxCols = packets.length <= 15 ? (packets.length <= 6 ? 1 : 2) : 3;
             const actualRows = Math.ceil(packets.length / maxCols);
             const cols = Math.min(maxCols, Math.ceil(packets.length / actualRows));
 
@@ -366,10 +367,18 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let c = 0; c < cols; c++) {
                 const th1 = document.createElement('th');
                 th1.textContent = 'Sr';
-                th1.style.width = '35%';
                 const th2 = document.createElement('th');
                 th2.textContent = 'Kg';
-                th2.style.width = '65%';
+                if (cols === 1) {
+                    th1.style.width = '30%';
+                    th2.style.width = '70%';
+                } else if (cols === 2) {
+                    th1.style.width = '18%';
+                    th2.style.width = '32%';
+                } else {
+                    th1.style.width = '12%';
+                    th2.style.width = '21.33%';
+                }
                 headerRow.appendChild(th1);
                 headerRow.appendChild(th2);
             }
@@ -423,8 +432,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tablesContainer.appendChild(tableWrapper);
 
         } else if (currentFormat === 'thermal58') {
-            // Thermal 58mm (2-Inch): Continuous mini receipt with 2 column pairs
-            const maxCols = 2;
+            // Thermal 58mm (2-Inch): Continuous mini receipt with up to 2 column pairs
+            const maxCols = packets.length <= 6 ? 1 : 2;
             const actualRows = Math.ceil(packets.length / maxCols);
             const cols = Math.min(maxCols, Math.ceil(packets.length / actualRows));
 
@@ -448,10 +457,15 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let c = 0; c < cols; c++) {
                 const th1 = document.createElement('th');
                 th1.textContent = '#';
-                th1.style.width = '35%';
                 const th2 = document.createElement('th');
                 th2.textContent = 'Kg';
-                th2.style.width = '65%';
+                if (cols === 1) {
+                    th1.style.width = '30%';
+                    th2.style.width = '70%';
+                } else {
+                    th1.style.width = '18%';
+                    th2.style.width = '32%';
+                }
                 headerRow.appendChild(th1);
                 headerRow.appendChild(th2);
             }
@@ -648,17 +662,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             `;
+        }
 
-            const finalNote = document.createElement('div');
-            finalNote.className = 'page-footer-note no-screen';
+        if (billFooterNote) {
             if (currentFormat === 'thermal80') {
-                finalNote.textContent = '*** Thank You • AgriBill Thermal 80mm ***';
+                billFooterNote.textContent = '*** Thank You • AgriBill Thermal 80mm ***';
             } else if (currentFormat === 'thermal58') {
-                finalNote.textContent = '*** Thank You • AgriBill 58mm ***';
+                billFooterNote.textContent = '*** Thank You • AgriBill 58mm ***';
             } else {
-                finalNote.textContent = 'Page 1 of 1 • AgriBill Smart Billing System';
+                billFooterNote.textContent = 'Page 1 of 1 • AgriBill Smart Billing System';
             }
-            billGrandSummary.appendChild(finalNote);
         }
     };
 
@@ -772,49 +785,64 @@ document.addEventListener('DOMContentLoaded', () => {
             const dateStr = now.toISOString().slice(0, 10);
             const filename = `AgriBill_${currentFormat}_${safeSeller}_${dateStr}.pdf`;
 
-            let opt;
-            if (currentFormat === 'thermal80') {
-                const elWidth = billElement.offsetWidth || 300;
-                const elHeight = billElement.offsetHeight || 600;
-                const heightMm = Math.max(90, Math.ceil((elHeight * 76) / elWidth) + 8);
+            if (currentFormat === 'thermal80' || currentFormat === 'thermal58') {
+                const jsPdfConstructor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+                if (typeof window.html2canvas === 'function' && jsPdfConstructor) {
+                    const is58 = currentFormat === 'thermal58';
+                    const targetWidthMm = is58 ? 58 : 80;
+                    const marginMm = is58 ? 1.5 : 2;
+                    const printWidthMm = targetWidthMm - (marginMm * 2);
 
-                opt = {
-                    margin: [2, 2, 2, 2],
-                    filename: filename,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: {
-                        scale: 2,
+                    const canvas = await window.html2canvas(billElement, {
+                        scale: 3, // crisp high-DPI POS rendering
                         useCORS: true,
-                        scrollX: 0,
-                        scrollY: 0,
                         logging: false,
-                        backgroundColor: '#ffffff'
-                    },
-                    jsPDF: { unit: 'mm', format: [80, heightMm], orientation: 'portrait' },
-                    pagebreak: { mode: 'avoid-all' }
-                };
-            } else if (currentFormat === 'thermal58') {
-                const elWidth = billElement.offsetWidth || 215;
-                const elHeight = billElement.offsetHeight || 600;
-                const heightMm = Math.max(80, Math.ceil((elHeight * 54) / elWidth) + 6);
+                        backgroundColor: '#ffffff',
+                        scrollX: 0,
+                        scrollY: 0
+                    });
 
-                opt = {
-                    margin: [1.5, 1.5, 1.5, 1.5],
-                    filename: filename,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: {
-                        scale: 2,
-                        useCORS: true,
-                        scrollX: 0,
-                        scrollY: 0,
-                        logging: false,
-                        backgroundColor: '#ffffff'
-                    },
-                    jsPDF: { unit: 'mm', format: [58, heightMm], orientation: 'portrait' },
-                    pagebreak: { mode: 'avoid-all' }
-                };
+                    const printHeightMm = (canvas.height * printWidthMm) / canvas.width;
+                    const pageHeightMm = printHeightMm + (marginMm * 2);
+
+                    const pdf = new jsPdfConstructor({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: [targetWidthMm, pageHeightMm]
+                    });
+
+                    const imgData = canvas.toDataURL('image/png');
+                    pdf.addImage(imgData, 'PNG', marginMm, marginMm, printWidthMm, printHeightMm);
+                    pdf.save(filename);
+                } else {
+                    // Fallback to html2pdf if direct libs are not yet available
+                    const is58 = currentFormat === 'thermal58';
+                    const targetWidth = is58 ? 58 : 80;
+                    const margin = is58 ? [1.5, 1.5, 1.5, 1.5] : [2, 2, 2, 2];
+                    const innerWidth = is58 ? 55 : 76;
+                    const elWidth = billElement.getBoundingClientRect().width || (is58 ? 290 : 380);
+                    const elHeight = Math.max(billElement.scrollHeight, billElement.offsetHeight, Math.ceil(billElement.getBoundingClientRect().height));
+                    const heightMm = Math.max(80, Math.ceil((elHeight * innerWidth) / elWidth) + 12);
+
+                    const opt = {
+                        margin: margin,
+                        filename: filename,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: {
+                            scale: 2.5,
+                            useCORS: true,
+                            scrollX: 0,
+                            scrollY: 0,
+                            logging: false,
+                            backgroundColor: '#ffffff'
+                        },
+                        jsPDF: { unit: 'mm', format: [targetWidth, heightMm], orientation: 'portrait' },
+                        pagebreak: { mode: [] }
+                    };
+                    await html2pdf().set(opt).from(billElement).save();
+                }
             } else {
-                opt = {
+                const opt = {
                     margin: [5, 5, 5, 5], // 5mm compact margins
                     filename: filename,
                     image: { type: 'jpeg', quality: 0.98 },
@@ -833,9 +861,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         avoid: ['tr', '.pdf-avoid-break', '.breakdown-table', '.packet-table-wrapper', '.grand-summary-bar', '.bill-signatures']
                     }
                 };
+                await html2pdf().set(opt).from(billElement).save();
             }
-
-            await html2pdf().set(opt).from(billElement).save();
 
         } catch (err) {
             console.error('Error generating PDF:', err);
