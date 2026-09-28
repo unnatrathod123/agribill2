@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const priceUnitInput = document.getElementById('priceUnit');
     const deductionPerPacketInput = document.getElementById('deductionPerPacket');
     const packetWeightInput = document.getElementById('packetWeightInput');
+    const whatsappNumberInput = document.getElementById('whatsappNumber');
 
     // DOM Elements - Actions
     const addPacketBtn = document.getElementById('addPacketBtn');
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const generateBillBtn = document.getElementById('generateBillBtn');
     const printBillBtn = document.getElementById('printBillBtn');
     const downloadBillBtn = document.getElementById('downloadBillBtn');
+    const whatsappBillBtn = document.getElementById('whatsappBillBtn');
     const editBillBtn = document.getElementById('editBillBtn');
 
     // DOM Elements - Packet List
@@ -36,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const billInvoiceNo = document.getElementById('billInvoiceNo');
     const billSeller = document.getElementById('billSeller');
     const billBuyer = document.getElementById('billBuyer');
+    const billWhatsapp = document.getElementById('billWhatsapp');
     const billCommodity = document.getElementById('billCommodity');
     const billRate = document.getElementById('billRate');
     const billPackets = document.getElementById('billPackets');
@@ -50,6 +53,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentInvoiceNo = '';
     let currentFormat = 'a4';
+
+    // Utility: Format & Sanitize Phone Number for WhatsApp
+    const formatWhatsAppPhone = (input) => {
+        if (!input) return '';
+        let digits = input.replace(/\D/g, '');
+        if (!digits) return '';
+        // If 10 digits (Standard Indian Mobile), prepend 91
+        if (digits.length === 10) {
+            return '91' + digits;
+        }
+        // If 11 digits starting with 0, replace 0 with 91
+        if (digits.length === 11 && digits.startsWith('0')) {
+            return '91' + digits.substring(1);
+        }
+        return digits;
+    };
 
     // Utility: Format Currency
     const formatCurrency = (amount) => {
@@ -249,6 +268,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         billSeller.textContent = seller;
         billBuyer.textContent = buyer;
+
+        if (billWhatsapp) {
+            const rawPhone = whatsappNumberInput ? whatsappNumberInput.value.trim() : '';
+            if (rawPhone) {
+                const digits = rawPhone.replace(/\D/g, '');
+                const displayPhone = digits.length === 10 ? `+91 ${digits.slice(0, 5)} ${digits.slice(5)}` : rawPhone;
+                billWhatsapp.textContent = `📱 WhatsApp: ${displayPhone}`;
+                billWhatsapp.style.display = 'block';
+            } else {
+                billWhatsapp.style.display = 'none';
+            }
+        }
+
         billCommodity.textContent = commodity;
 
         const unitLabel = priceUnitInput.options[priceUnitInput.selectedIndex].text;
@@ -745,21 +777,12 @@ document.addEventListener('DOMContentLoaded', () => {
         window.print();
     });
 
-    downloadBillBtn.addEventListener('click', async () => {
+    // Helper: Generate Bill PDF as a Blob
+    const generateBillPdfBlob = async () => {
         const billElement = document.getElementById('billContainer');
         if (!billElement || billElement.style.display === 'none') {
-            alert('Please generate a bill first.');
-            return;
+            throw new Error('Please generate a bill first.');
         }
-
-        const originalBtnText = downloadBillBtn.innerHTML;
-        downloadBillBtn.innerHTML = `
-            <svg style="width:16px;height:16px;margin-right:6px;animation:spin 1s linear infinite;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25"></circle>
-                <path fill="currentColor" style="opacity:0.75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg> Generating PDF...
-        `;
-        downloadBillBtn.disabled = true;
 
         // Remember user scroll position
         const prevScrollX = window.scrollX;
@@ -785,6 +808,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const dateStr = now.toISOString().slice(0, 10);
             const filename = `AgriBill_${currentFormat}_${safeSeller}_${dateStr}.pdf`;
 
+            let blob;
+
             if (currentFormat === 'thermal80' || currentFormat === 'thermal58') {
                 const jsPdfConstructor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
                 if (typeof window.html2canvas === 'function' && jsPdfConstructor) {
@@ -794,7 +819,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const printWidthMm = targetWidthMm - (marginMm * 2);
 
                     const canvas = await window.html2canvas(billElement, {
-                        scale: 3, // crisp high-DPI POS rendering
+                        scale: 2, // Crisp on POS receipt rolls without ballooning file size
                         useCORS: true,
                         logging: false,
                         backgroundColor: '#ffffff',
@@ -808,14 +833,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const pdf = new jsPdfConstructor({
                         orientation: 'portrait',
                         unit: 'mm',
-                        format: [targetWidthMm, pageHeightMm]
+                        format: [targetWidthMm, pageHeightMm],
+                        compress: true
                     });
 
-                    const imgData = canvas.toDataURL('image/png');
-                    pdf.addImage(imgData, 'PNG', marginMm, marginMm, printWidthMm, printHeightMm);
-                    pdf.save(filename);
+                    // Use compressed JPEG (0.82) instead of heavy uncompressed PNG to reduce size by 90%+
+                    const imgData = canvas.toDataURL('image/jpeg', 0.82);
+                    pdf.addImage(imgData, 'JPEG', marginMm, marginMm, printWidthMm, printHeightMm, undefined, 'FAST');
+                    blob = pdf.output('blob');
                 } else {
-                    // Fallback to html2pdf if direct libs are not yet available
                     const is58 = currentFormat === 'thermal58';
                     const targetWidth = is58 ? 58 : 80;
                     const margin = is58 ? [1.5, 1.5, 1.5, 1.5] : [2, 2, 2, 2];
@@ -827,46 +853,50 @@ document.addEventListener('DOMContentLoaded', () => {
                     const opt = {
                         margin: margin,
                         filename: filename,
-                        image: { type: 'jpeg', quality: 0.98 },
+                        image: { type: 'jpeg', quality: 0.82 },
                         html2canvas: {
-                            scale: 2.5,
+                            scale: 2,
                             useCORS: true,
                             scrollX: 0,
                             scrollY: 0,
                             logging: false,
                             backgroundColor: '#ffffff'
                         },
-                        jsPDF: { unit: 'mm', format: [targetWidth, heightMm], orientation: 'portrait' },
+                        jsPDF: { unit: 'mm', format: [targetWidth, heightMm], orientation: 'portrait', compress: true },
                         pagebreak: { mode: [] }
                     };
-                    await html2pdf().set(opt).from(billElement).save();
+                    const worker = html2pdf().set(opt).from(billElement);
+                    const pdf = await worker.toPdf().get('pdf');
+                    blob = pdf.output('blob');
                 }
             } else {
+                // A4 Standard: Optimized 1.6 scale + 0.82 JPEG quality + stream compression
                 const opt = {
                     margin: [5, 5, 5, 5], // 5mm compact margins
                     filename: filename,
-                    image: { type: 'jpeg', quality: 0.98 },
+                    image: { type: 'jpeg', quality: 0.82 },
                     html2canvas: {
-                        scale: 2,
+                        scale: 1.6, // High clarity (~150 DPI) with 80%+ smaller footprint than scale 2
                         useCORS: true,
                         scrollX: 0,
                         scrollY: 0,
                         logging: false,
                         backgroundColor: '#ffffff'
                     },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
                     pagebreak: { 
                         mode: ['css', 'legacy'],
                         before: '.html2pdf__page-break',
                         avoid: ['tr', '.pdf-avoid-break', '.breakdown-table', '.packet-table-wrapper', '.grand-summary-bar', '.bill-signatures']
                     }
                 };
-                await html2pdf().set(opt).from(billElement).save();
+                const worker = html2pdf().set(opt).from(billElement);
+                const pdf = await worker.toPdf().get('pdf');
+                blob = pdf.output('blob');
             }
 
-        } catch (err) {
-            console.error('Error generating PDF:', err);
-            alert('PDF generation encountered an error. You can also use the "Print Bill" button to Save as PDF directly.');
+            return { blob, filename };
+
         } finally {
             // Restore UI styles
             billElement.classList.remove('pdf-mode');
@@ -875,8 +905,171 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Restore user scroll position
             window.scrollTo(prevScrollX, prevScrollY);
+        }
+    };
+
+    // Helper: Show sleek desktop notification toast for WhatsApp Web
+    const showWhatsAppToast = () => {
+        let toast = document.getElementById('whatsappToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'whatsappToast';
+            toast.className = 'whatsapp-toast';
+            document.body.appendChild(toast);
+        }
+        toast.innerHTML = `
+            <div class="whatsapp-toast-content">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#25D366">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.456 5.711 1.457h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                </svg>
+                <div>
+                    <strong>PDF Downloaded &amp; WhatsApp Opened!</strong>
+                    <p>Simply drag and drop or attach the downloaded PDF into your WhatsApp chat.</p>
+                </div>
+                <button type="button" class="toast-close-btn" onclick="this.closest('.whatsapp-toast').classList.remove('show')">&times;</button>
+            </div>
+        `;
+        toast.classList.add('show');
+        clearTimeout(toast._timeout);
+        toast._timeout = setTimeout(() => {
+            toast.classList.remove('show');
+        }, 7000);
+    };
+
+    downloadBillBtn.addEventListener('click', async () => {
+        const billElement = document.getElementById('billContainer');
+        if (!billElement || billElement.style.display === 'none') {
+            alert('Please generate a bill first.');
+            return;
+        }
+
+        const originalBtnText = downloadBillBtn.innerHTML;
+        downloadBillBtn.innerHTML = `
+            <svg style="width:16px;height:16px;margin-right:6px;animation:spin 1s linear infinite;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25"></circle>
+                <path fill="currentColor" style="opacity:0.75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg> Generating PDF...
+        `;
+        downloadBillBtn.disabled = true;
+
+        try {
+            const { blob, filename } = await generateBillPdfBlob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 1000);
+        } catch (err) {
+            console.error('Error generating PDF:', err);
+            alert('PDF generation encountered an error. You can also use the "Print Bill" button to Save as PDF directly.');
+        } finally {
             downloadBillBtn.innerHTML = originalBtnText;
             downloadBillBtn.disabled = false;
+        }
+    });
+
+    whatsappBillBtn.addEventListener('click', async () => {
+        const billElement = document.getElementById('billContainer');
+        if (!billElement || billElement.style.display === 'none') {
+            alert('Please generate a bill first.');
+            return;
+        }
+
+        const originalBtnText = whatsappBillBtn.innerHTML;
+        whatsappBillBtn.innerHTML = `
+            <svg style="width:16px;height:16px;margin-right:6px;animation:spin 1s linear infinite;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25"></circle>
+                <path fill="currentColor" style="opacity:0.75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg> Preparing WhatsApp...
+        `;
+        whatsappBillBtn.disabled = true;
+
+        try {
+            const { blob, filename } = await generateBillPdfBlob();
+            const pdfFile = new File([blob], filename, { type: 'application/pdf' });
+
+            const invoiceNo = billInvoiceNo ? billInvoiceNo.textContent : currentInvoiceNo;
+            const dateStr = billDate ? billDate.textContent : '';
+            const seller = sellerNameInput.value.trim() || 'Cash';
+            const buyer = buyerNameInput.value.trim() || 'Cash';
+            const commodity = commodityNameInput.value.trim() || 'Commodity';
+            const totalAmountStr = billTotalAmount ? billTotalAmount.textContent : '';
+            const netWeightStr = billNetWeight ? billNetWeight.textContent : '';
+            const totalPkts = packets.length;
+
+            const targetPhone = formatWhatsAppPhone(whatsappNumberInput ? whatsappNumberInput.value.trim() : '');
+
+            const messageSummary = 
+`🌾 *AgriBill - Invoice / Weighing Memo*
+📄 *Invoice No:* ${invoiceNo}
+📅 *Date:* ${dateStr}
+👤 *Seller:* ${seller}
+🛒 *Buyer:* ${buyer}
+📦 *Commodity:* ${commodity}
+⚖️ *Total Packets:* ${totalPkts} pkts
+⚖️ *Net Weight:* ${netWeightStr}
+💰 *Total Amount:* ${totalAmountStr}
+
+Thank you for your business!`;
+
+            let sharedViaNavigator = false;
+
+            // Check if Web Share API with Files is supported (mobile browsers & supported platforms)
+            if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                try {
+                    await navigator.share({
+                        title: `Invoice ${invoiceNo} - AgriBill`,
+                        text: messageSummary,
+                        files: [pdfFile]
+                    });
+                    sharedViaNavigator = true;
+                } catch (shareErr) {
+                    if (shareErr.name === 'AbortError') {
+                        // User cancelled the native share dialog
+                        return;
+                    }
+                    console.warn('Navigator share error, falling back to WhatsApp Web:', shareErr);
+                }
+            }
+
+            // Fallback for Desktop WhatsApp Web or browsers without direct file sharing
+            if (!sharedViaNavigator) {
+                // 1. Download PDF to device
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 1000);
+
+                // 2. Open WhatsApp chat with pre-filled summary
+                const noteMsg = `${messageSummary}\n\n*(📎 PDF Invoice is downloaded to your device - attach it here to send)*`;
+                const encodedMsg = encodeURIComponent(noteMsg);
+                const waUrl = targetPhone
+                    ? `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodedMsg}`
+                    : `https://api.whatsapp.com/send?text=${encodedMsg}`;
+
+                window.open(waUrl, '_blank');
+
+                // 3. Show helpful toast prompt
+                showWhatsAppToast();
+            }
+
+        } catch (err) {
+            console.error('Error sharing via WhatsApp:', err);
+            alert('Could not prepare PDF for WhatsApp. Please download the PDF and send it manually.');
+        } finally {
+            whatsappBillBtn.innerHTML = originalBtnText;
+            whatsappBillBtn.disabled = false;
         }
     });
 
