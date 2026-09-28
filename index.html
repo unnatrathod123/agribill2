@@ -256,9 +256,35 @@
 
                 <div class="bill-actions no-print">
                     <button id="downloadBillBtn" class="btn btn-primary"
-                        style="background-color: var(--secondary); color: var(--text-main);">Download PDF</button>
-                    <button id="printBillBtn" class="btn btn-primary">Print Bill</button>
-                    <button id="editBillBtn" class="btn btn-secondary">Edit Details</button>
+                        style="background-color: var(--secondary); color: var(--text-main);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-download">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" x2="12" y1="15" y2="3" />
+                        </svg>
+                        Download PDF
+                    </button>
+                    <button id="printBillBtn" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-printer">
+                            <polyline points="6 9 6 2 18 2 18 9" />
+                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                            <rect width="12" height="8" x="6" y="14" />
+                        </svg>
+                        Print Bill
+                    </button>
+                    <button id="editBillBtn" class="btn btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-pencil">
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                            <path d="m15 5 4 4" />
+                        </svg>
+                        Edit Details
+                    </button>
                 </div>
             </div>
 
