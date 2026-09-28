@@ -734,6 +734,36 @@ input:focus {
     display: inline-block;
 }
 
+/* Dedicated A4 format actions: 4 buttons in 1 row on desktop, wrapping gracefully on smaller screens */
+.bill-card.format-a4 .bill-actions {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0.65rem;
+    margin-top: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.bill-card.format-a4 .bill-actions .btn {
+    width: 100%;
+    padding: 0.65rem 0.5rem;
+    font-size: 0.85rem;
+    height: 42px;
+}
+
+@media (max-width: 768px) {
+    .bill-card.format-a4 .bill-actions {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.6rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .bill-card.format-a4 .bill-actions {
+        grid-template-columns: 1fr !important;
+    }
+}
+
 /* Ultra-Compact Dedicated PDF Mode for A4 capture */
 .bill-card.format-a4.pdf-mode {
     width: 750px !important;
@@ -1434,8 +1464,8 @@ input:focus {
 }
 
 .bill-card.format-thermal80 .bill-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
     gap: 0.5rem;
     margin-top: 1rem;
     width: 100%;
@@ -1444,14 +1474,28 @@ input:focus {
 
 .bill-card.format-thermal80 .bill-actions .btn {
     width: 100%;
-    padding: 0.55rem 0.4rem;
-    font-size: 0.8rem;
+    padding: 0.5rem 0.35rem;
+    font-size: 0.78rem;
     gap: 0.35rem;
     white-space: nowrap;
     box-sizing: border-box;
     height: 38px;
     align-items: center;
     justify-content: center;
+}
+
+.bill-card.format-thermal80 .bill-actions .btn svg {
+    width: 15px !important;
+    height: 15px !important;
+    flex-shrink: 0;
+}
+
+.bill-card.format-thermal80 .btn-text-full {
+    display: none !important;
+}
+
+.bill-card.format-thermal80 .btn-text-short {
+    display: inline !important;
 }
 
 /* ========================================================
@@ -1726,8 +1770,8 @@ input:focus {
 }
 
 .bill-card.format-thermal58 .bill-actions {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
     gap: 0.4rem;
     margin-top: 0.75rem;
     width: 100%;
@@ -1735,10 +1779,10 @@ input:focus {
 }
 
 .bill-card.format-thermal58 .bill-actions .btn {
-    flex: 1 1 calc(50% - 0.4rem);
-    padding: 0.5rem 0.35rem;
-    font-size: 0.75rem;
-    gap: 0.35rem;
+    width: 100%;
+    padding: 0.45rem 0.25rem;
+    font-size: 0.72rem;
+    gap: 0.25rem;
     white-space: nowrap;
     box-sizing: border-box;
     height: 36px;
@@ -1746,14 +1790,9 @@ input:focus {
     justify-content: center;
 }
 
-.bill-card.format-thermal58 .bill-actions .btn:first-child,
-.bill-card.format-thermal58 .bill-actions .btn:last-child {
-    flex: 1 1 100%;
-}
-
 .bill-card.format-thermal58 .bill-actions .btn svg {
-    width: 14px !important;
-    height: 14px !important;
+    width: 13px !important;
+    height: 13px !important;
     flex-shrink: 0;
     vertical-align: middle;
 }
@@ -2062,6 +2101,7 @@ input:focus {
     from {
         transform: rotate(0deg);
     }
+
     to {
         transform: rotate(360deg);
     }
@@ -2142,6 +2182,47 @@ input:focus {
 
 .toast-close-btn:hover {
     color: #ffffff;
+}
+
+/* WhatsApp Toast Error Mode */
+.whatsapp-toast.error {
+    border-left-color: #ef4444;
+}
+
+.whatsapp-toast.error strong {
+    color: #fca5a5;
+}
+
+/* Form Input Error Shake & Highlight */
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    20%,
+    60% {
+        transform: translateX(-5px);
+    }
+
+    40%,
+    80% {
+        transform: translateX(5px);
+    }
+}
+
+.input-error-shake {
+    animation: shake 0.4s ease-in-out;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+}
+
+.field-error-msg {
+    color: #ef4444;
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
+    font-weight: 500;
 }
 
 @media (max-width: 480px) {
